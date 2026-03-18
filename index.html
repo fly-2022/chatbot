@@ -510,14 +510,16 @@
 
 
 <script>
+
 /* ===============================
-   KNOWLEDGE BASE STORAGE
+   STORAGE
 ================================ */
 
 let knowledgeBase = JSON.parse(localStorage.getItem("kb")) || [];
+let editingIndex = null;
 
 /* ===============================
-   DOM ELEMENTS
+   DOM
 ================================ */
 
 const messages = document.getElementById("messages");
@@ -528,6 +530,8 @@ const qaList = document.getElementById("qaList");
 const addBtn = document.querySelector(".add-btn");
 
 const modal = document.getElementById("modal");
+const modalTitle = document.getElementById("modalTitle");
+
 const saveBtn = document.querySelector(".save-btn");
 const cancelBtn = document.querySelector(".cancel-btn");
 
@@ -540,38 +544,55 @@ const searchInput = document.getElementById("searchInput");
 const searchBtn = document.querySelector(".search-area button");
 
 /* ===============================
-   CHAT FUNCTIONS
+   CHAT
 ================================ */
 
 function addMessage(text, type) {
+
     const msg = document.createElement("div");
     msg.className = "message " + type;
     msg.innerText = text;
+
     messages.appendChild(msg);
+
     messages.scrollTop = messages.scrollHeight;
+}
+
+function scoreMatch(text, keywords) {
+
+    let score = 0;
+
+    keywords.forEach(k => {
+        if (text.includes(k)) score += 1;
+    });
+
+    return score;
 }
 
 function findAnswer(question) {
 
     const q = question.toLowerCase();
 
-    for (let item of knowledgeBase) {
+    let bestScore = 0;
+    let bestAnswer = null;
 
-        if (item.question.toLowerCase().includes(q)) {
-            return item.answer;
+    knowledgeBase.forEach(item => {
+
+        const keywords = [
+            item.question.toLowerCase(),
+            ...(item.synonyms ? item.synonyms.toLowerCase().split(",") : [])
+        ];
+
+        const score = scoreMatch(q, keywords);
+
+        if (score > bestScore) {
+            bestScore = score;
+            bestAnswer = item.answer;
         }
 
-        if (item.synonyms) {
-            const synonyms = item.synonyms.split(",");
-            for (let s of synonyms) {
-                if (q.includes(s.trim().toLowerCase())) {
-                    return item.answer;
-                }
-            }
-        }
-    }
+    });
 
-    return "Sorry, I don't know the answer yet. Try adding it in the Knowledge Base 📚";
+    return bestAnswer || "I couldn't find that in the knowledge base yet.";
 }
 
 function sendMessage() {
@@ -591,13 +612,21 @@ function sendMessage() {
 }
 
 sendBtn.onclick = sendMessage;
+
 chatInput.addEventListener("keypress", e => {
     if (e.key === "Enter") sendMessage();
 });
 
 /* ===============================
-   KNOWLEDGE BASE UI
+   KNOWLEDGE BASE
 ================================ */
+
+function saveKB() {
+
+    localStorage.setItem("kb", JSON.stringify(knowledgeBase));
+
+    renderKB();
+}
 
 function renderKB(list = knowledgeBase) {
 
@@ -606,6 +635,7 @@ function renderKB(list = knowledgeBase) {
     list.forEach((item, index) => {
 
         const div = document.createElement("div");
+
         div.className = "qa-item";
 
         div.innerHTML = `
@@ -613,28 +643,57 @@ function renderKB(list = knowledgeBase) {
         <p>${item.answer}</p>
         <div class="qa-meta">Category: ${item.category || "General"}</div>
         <div class="qa-keywords">Synonyms: ${item.synonyms || "-"}</div>
+
+        <button class="edit-btn">Edit</button>
         <button class="delete-btn">Delete</button>
         `;
 
         div.querySelector(".delete-btn").onclick = () => {
-            knowledgeBase.splice(index,1);
-            saveKB();
+
+            if (confirm("Delete this entry?")) {
+
+                knowledgeBase.splice(index,1);
+
+                saveKB();
+            }
+
+        };
+
+        div.querySelector(".edit-btn").onclick = () => {
+
+            editingIndex = index;
+
+            modalTitle.innerText = "Edit Q&A";
+
+            formQuestion.value = item.question;
+            formAnswer.value = item.answer;
+            formSynonyms.value = item.synonyms || "";
+            formCategory.value = item.category || "";
+
+            modal.classList.add("active");
         };
 
         qaList.appendChild(div);
-    });
-}
 
-function saveKB() {
-    localStorage.setItem("kb", JSON.stringify(knowledgeBase));
-    renderKB();
+    });
+
 }
 
 /* ===============================
-   ADD Q&A
+   ADD / UPDATE
 ================================ */
 
 addBtn.onclick = () => {
+
+    editingIndex = null;
+
+    modalTitle.innerText = "Add New Q&A";
+
+    formQuestion.value = "";
+    formAnswer.value = "";
+    formSynonyms.value = "";
+    formCategory.value = "";
+
     modal.classList.add("active");
 };
 
@@ -647,19 +706,29 @@ saveBtn.onclick = () => {
     const question = formQuestion.value.trim();
     const answer = formAnswer.value.trim();
 
-    if (!question || !answer) return alert("Question and Answer required");
+    if (!question || !answer) {
 
-    knowledgeBase.push({
+        alert("Question and answer required");
+
+        return;
+    }
+
+    const item = {
         question,
         answer,
         synonyms: formSynonyms.value,
         category: formCategory.value
-    });
+    };
 
-    formQuestion.value = "";
-    formAnswer.value = "";
-    formSynonyms.value = "";
-    formCategory.value = "";
+    if (editingIndex !== null) {
+
+        knowledgeBase[editingIndex] = item;
+
+    } else {
+
+        knowledgeBase.push(item);
+
+    }
 
     modal.classList.remove("active");
 
@@ -675,9 +744,11 @@ searchBtn.onclick = () => {
     const q = searchInput.value.toLowerCase();
 
     const results = knowledgeBase.filter(item =>
+
         item.question.toLowerCase().includes(q) ||
         item.answer.toLowerCase().includes(q) ||
         (item.synonyms && item.synonyms.toLowerCase().includes(q))
+
     );
 
     renderKB(results);
@@ -691,6 +762,7 @@ const tabs = document.querySelectorAll(".tab-button");
 const contents = document.querySelectorAll(".tab-content");
 
 tabs.forEach((tab, i) => {
+
     tab.onclick = () => {
 
         tabs.forEach(t => t.classList.remove("active"));
@@ -698,7 +770,9 @@ tabs.forEach((tab, i) => {
 
         tab.classList.add("active");
         contents[i].classList.add("active");
+
     };
+
 });
 
 /* ===============================
