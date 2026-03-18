@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -162,49 +161,76 @@ margin-bottom:8px;
 
 .qa-list{
 flex:1;
+overflow-y:auto;
 display:flex;
 flex-direction:column;
-gap:10px;
+gap:14px;
 }
 
 .qa-item{
-background:#334155;
-padding:14px;
-border-radius:10px;
+background:linear-gradient(135deg,#334155 0%,#3f4655 100%);
+padding:18px;
+border-radius:12px;
+border:1px solid #475569;
+border-left:4px solid #3b82f6;
+transition:all .25s ease;
+}
+
+.qa-item:hover{
+background:#475569;
+transform:translateX(4px);
 }
 
 .qa-item h3{
-margin-bottom:6px;
+font-size:16px;
+margin-bottom:8px;
+color:white;
+}
+
+.qa-item p{
+font-size:14px;
+color:#cbd5e1;
+margin-bottom:10px;
 }
 
 .qa-meta{
 font-size:12px;
 color:#94a3b8;
+margin-bottom:6px;
 }
 
 .qa-keywords{
 font-size:12px;
 color:#64748b;
+margin-bottom:10px;
+font-style:italic;
 }
 
 .edit-btn{
 padding:6px 12px;
 background:#2563eb;
 border:none;
-border-radius:4px;
+border-radius:6px;
 color:white;
 cursor:pointer;
 margin-right:6px;
-margin-top:6px;
 }
 
 .delete-btn{
 padding:6px 12px;
 background:#dc2626;
 border:none;
-border-radius:4px;
+border-radius:6px;
 color:white;
 cursor:pointer;
+}
+
+.edit-btn:hover{
+background:#1d4ed8;
+}
+
+.delete-btn:hover{
+background:#b91c1c;
 }
 
 .modal{
@@ -344,16 +370,7 @@ let editingIndex=null
 const messages=document.getElementById("messages")
 const chatInput=document.getElementById("chatInput")
 const sendBtn=document.getElementById("sendBtn")
-
 const qaList=document.getElementById("qaList")
-
-const modal=document.getElementById("modal")
-const modalTitle=document.getElementById("modalTitle")
-
-const formQuestion=document.getElementById("formQuestion")
-const formAnswer=document.getElementById("formAnswer")
-const formSynonyms=document.getElementById("formSynonyms")
-const formCategory=document.getElementById("formCategory")
 
 function addMessage(text,type){
 
@@ -363,6 +380,7 @@ msg.innerText=text
 
 messages.appendChild(msg)
 messages.scrollTop=messages.scrollHeight
+
 }
 
 function similarity(a,b){
@@ -377,6 +395,7 @@ if(b.includes(w))score++
 })
 
 return score
+
 }
 
 function findAnswer(q){
@@ -406,12 +425,12 @@ bestAnswer=item.answer
 })
 
 return bestAnswer||"I couldn't find that in the knowledge base yet."
+
 }
 
 sendBtn.onclick=()=>{
 
 const text=chatInput.value.trim()
-
 if(!text)return
 
 addMessage(text,"user")
@@ -453,14 +472,14 @@ div.querySelector(".edit-btn").onclick=()=>{
 
 editingIndex=index
 
-modalTitle.innerText="Edit Q&A"
+document.getElementById("modalTitle").innerText="Edit Q&A"
 
-formQuestion.value=item.question
-formAnswer.value=item.answer
-formSynonyms.value=item.synonyms||""
-formCategory.value=item.category||""
+document.getElementById("formQuestion").value=item.question
+document.getElementById("formAnswer").value=item.answer
+document.getElementById("formSynonyms").value=item.synonyms||""
+document.getElementById("formCategory").value=item.category||""
 
-modal.classList.add("active")
+document.getElementById("modal").classList.add("active")
 
 }
 
@@ -485,26 +504,28 @@ document.getElementById("addBtn").onclick=()=>{
 
 editingIndex=null
 
-modalTitle.innerText="Add Q&A"
+document.getElementById("modalTitle").innerText="Add Q&A"
 
-formQuestion.value=""
-formAnswer.value=""
-formSynonyms.value=""
-formCategory.value=""
+document.getElementById("formQuestion").value=""
+document.getElementById("formAnswer").value=""
+document.getElementById("formSynonyms").value=""
+document.getElementById("formCategory").value=""
 
-modal.classList.add("active")
+document.getElementById("modal").classList.add("active")
 
 }
 
-document.getElementById("cancelBtn").onclick=()=>modal.classList.remove("active")
+document.getElementById("cancelBtn").onclick=()=>{
+document.getElementById("modal").classList.remove("active")
+}
 
 document.getElementById("saveBtn").onclick=()=>{
 
 const item={
-question:formQuestion.value,
-answer:formAnswer.value,
-synonyms:formSynonyms.value,
-category:formCategory.value
+question:document.getElementById("formQuestion").value,
+answer:document.getElementById("formAnswer").value,
+synonyms:document.getElementById("formSynonyms").value,
+category:document.getElementById("formCategory").value
 }
 
 if(editingIndex!==null){
@@ -513,7 +534,7 @@ knowledgeBase[editingIndex]=item
 knowledgeBase.push(item)
 }
 
-modal.classList.remove("active")
+document.getElementById("modal").classList.remove("active")
 saveKB()
 
 }
@@ -535,9 +556,7 @@ renderKB(results)
 document.getElementById("exportKB").onclick=function(){
 
 const data=JSON.stringify(knowledgeBase,null,2)
-
 const blob=new Blob([data],{type:"application/json"})
-
 const a=document.createElement("a")
 
 a.href=URL.createObjectURL(blob)
@@ -558,7 +577,6 @@ reader.onload=function(){
 
 knowledgeBase=JSON.parse(reader.result)
 saveKB()
-
 alert("Knowledge imported!")
 
 }
@@ -592,4 +610,3 @@ addMessage("Hello! Ask me anything from the knowledge base 😊","bot")
 
 </body>
 </html>
-```
