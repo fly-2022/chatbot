@@ -134,33 +134,26 @@ function addMessage(text, type){
     messages.scrollTop = messages.scrollHeight;
 }
 
-function similarity(a,b){
-    a = a.toLowerCase();
-    b = b.toLowerCase();
-    let score = 0;
-    a.split(" ").forEach(w => { if(b.includes(w)) score++; });
-    return score;
-}
-
+/* ===============================
+   INTENT-AWARE ANSWER MATCHING
+================================ */
 function findAnswer(question) {
     const q = question.toLowerCase().trim();
 
     for (let item of knowledgeBase) {
-        // exact match with question
+        // 1️⃣ Exact match with question
         if (item.question.toLowerCase() === q) return item.answer;
 
-        // check synonyms
+        // 2️⃣ Match with synonyms (any phrase in synonyms list)
         if (item.synonyms) {
             const synonyms = item.synonyms.split(",");
             for (let s of synonyms) {
-                if (q === s.trim().toLowerCase()) {
-                    return item.answer;
-                }
+                if (q.includes(s.trim().toLowerCase())) return item.answer;
             }
         }
     }
 
-    // No match found
+    // 3️⃣ No match found
     return "Sorry, I don't know the answer yet. Try adding it in the Knowledge Base 📚";
 }
 
@@ -196,14 +189,16 @@ function renderKB(list = knowledgeBase){
             <button class="edit-btn">Edit</button>
             <button class="delete-btn">Delete</button>
         `;
-        // delete
+
+        // Delete
         div.querySelector(".delete-btn")?.addEventListener("click",()=> {
             if(confirm("Delete this entry?")){
                 knowledgeBase.splice(index,1);
                 saveKB();
             }
         });
-        // edit
+
+        // Edit
         div.querySelector(".edit-btn")?.addEventListener("click",()=>{
             editingIndex = index;
             modal.classList.add("active");
@@ -212,6 +207,7 @@ function renderKB(list = knowledgeBase){
             formSynonyms.value = item.synonyms || "";
             formCategory.value = item.category || "";
         });
+
         qaList.appendChild(div);
     });
 }
@@ -287,6 +283,4 @@ tabs.forEach((tab,i)=>{
 renderKB();
 addMessage("Hello! Ask me anything from the knowledge base 😊","bot");
 </script>
-
 </html>
-
