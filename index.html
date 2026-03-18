@@ -1,790 +1,530 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Knowledge Base Chatbot</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Knowledge Base Chatbot</title>
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
+<style>
 
-        .container {
-            width: 100%;
-            max-width: 900px;
-            background: #1e293b;
-            border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            height: 85vh;
-            max-height: 850px;
-        }
+body{
+font-family:Arial;
+background:#0f172a;
+color:white;
+margin:0;
+display:flex;
+justify-content:center;
+align-items:center;
+height:100vh;
+}
 
-        .header {
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-            border-bottom: 2px solid #3b82f6;
-            padding: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+.container{
+width:900px;
+height:85vh;
+background:#1e293b;
+border-radius:12px;
+display:flex;
+flex-direction:column;
+overflow:hidden;
+}
 
-        .header h1 {
-            color: #fff;
-            font-size: 24px;
-            font-weight: 700;
-        }
+.header{
+padding:20px;
+background:#020617;
+font-size:20px;
+font-weight:bold;
+}
 
-        .sync-status {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 12px;
-            color: #94a3b8;
-        }
+.tabs{
+display:flex;
+}
 
-        .sync-indicator {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #22c55e;
-            animation: pulse 2s infinite;
-        }
+.tab-button{
+flex:1;
+padding:15px;
+background:#1e293b;
+border:none;
+color:#94a3b8;
+cursor:pointer;
+}
 
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
+.tab-button.active{
+color:#3b82f6;
+border-bottom:3px solid #3b82f6;
+}
 
-        .tabs {
-            display: flex;
-            border-bottom: 1px solid #334155;
-            background: #1e293b;
-        }
+.tab-content{
+display:none;
+flex:1;
+padding:20px;
+overflow:auto;
+}
 
-        .tab-button {
-            flex: 1;
-            padding: 16px;
-            background: none;
-            border: none;
-            color: #64748b;
-            cursor: pointer;
-            font-weight: 500;
-            transition: all 0.3s;
-            border-bottom: 3px solid transparent;
-            font-size: 14px;
-        }
+.tab-content.active{
+display:flex;
+flex-direction:column;
+}
 
-        .tab-button.active {
-            color: #3b82f6;
-            border-bottom-color: #3b82f6;
-            background: rgba(59, 130, 246, 0.05);
-        }
+.messages{
+flex:1;
+overflow:auto;
+}
 
-        .tab-button:hover {
-            background: rgba(59, 130, 246, 0.1);
-            color: #cbd5e1;
-        }
+.message{
+padding:10px;
+margin:6px 0;
+border-radius:8px;
+max-width:70%;
+}
 
-        .content {
-            flex: 1;
-            display: flex;
-            overflow: hidden;
-        }
+.user{
+background:#2563eb;
+align-self:flex-end;
+}
 
-        .tab-content {
-            display: none;
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px;
-            gap: 16px;
-            flex-direction: column;
-        }
+.bot{
+background:#334155;
+}
 
-        .tab-content.active {
-            display: flex;
-        }
+.input-area{
+display:flex;
+gap:10px;
+margin-top:10px;
+}
 
-        .messages {
-            flex: 1;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin-bottom: 16px;
-            padding-right: 8px;
-        }
+input{
+padding:10px;
+border-radius:6px;
+border:none;
+flex:1;
+}
 
-        .message {
-            padding: 12px 16px;
-            border-radius: 12px;
-            max-width: 85%;
-            word-wrap: break-word;
-            animation: slideIn 0.3s ease;
-            line-height: 1.4;
-        }
+button{
+padding:10px;
+border:none;
+border-radius:6px;
+cursor:pointer;
+}
 
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+.send-btn{
+background:#3b82f6;
+color:white;
+}
 
-        .message.user {
-            align-self: flex-end;
-            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-            color: white;
-            border-radius: 12px 4px 12px 12px;
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-        }
+.add-btn{
+background:#22c55e;
+color:white;
+margin:5px 0;
+}
 
-        .message.bot {
-            align-self: flex-start;
-            background: #334155;
-            color: #e2e8f0;
-            border-radius: 4px 12px 12px 12px;
-            border-left: 3px solid #3b82f6;
-        }
+.edit-btn{
+background:#2563eb;
+color:white;
+margin-right:5px;
+}
 
-        .input-area {
-            display: flex;
-            gap: 10px;
-            margin-top: 10px;
-        }
+.delete-btn{
+background:#dc2626;
+color:white;
+}
 
-        .input-area input {
-            flex: 1;
-            padding: 12px 16px;
-            background: #334155;
-            border: 1px solid #475569;
-            border-radius: 8px;
-            color: #fff;
-            font-size: 14px;
-            transition: all 0.3s;
-        }
+.qa-item{
+background:#334155;
+padding:12px;
+border-radius:8px;
+margin-bottom:10px;
+}
 
-        .input-area input:focus {
-            outline: none;
-            border-color: #3b82f6;
-            background: #3f4655;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-        }
+.modal{
+position:fixed;
+top:0;
+left:0;
+right:0;
+bottom:0;
+background:rgba(0,0,0,0.7);
+display:none;
+justify-content:center;
+align-items:center;
+}
 
-        .input-area button {
-            padding: 12px 24px;
-            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s;
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-        }
+.modal.active{
+display:flex;
+}
 
-        .input-area button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
-        }
+.modal-content{
+background:#1e293b;
+padding:20px;
+width:400px;
+border-radius:8px;
+}
 
-        .input-area button:active {
-            transform: translateY(0);
-        }
+textarea{
+width:100%;
+height:80px;
+}
 
-        .search-area {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
+</style>
 
-        .search-area input {
-            flex: 1;
-            padding: 12px 16px;
-            background: #334155;
-            border: 1px solid #475569;
-            border-radius: 8px;
-            color: #fff;
-        }
-
-        .search-area button {
-            padding: 12px 20px;
-            background: #3b82f6;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-        }
-
-        .add-btn {
-            padding: 12px 16px;
-            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            width: 100%;
-            font-weight: 600;
-            margin-bottom: 12px;
-            transition: all 0.3s;
-        }
-
-        .add-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
-        }
-
-        .qa-list {
-            flex: 1;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            padding-right: 8px;
-        }
-
-        .qa-item {
-            background: linear-gradient(135deg, #334155 0%, #3f4655 100%);
-            padding: 16px;
-            border-radius: 10px;
-            border: 1px solid #475569;
-            transition: all 0.3s;
-            border-left: 3px solid #3b82f6;
-        }
-
-        .qa-item:hover {
-            border-color: #64748b;
-            background: linear-gradient(135deg, #3f4655 0%, #475569 100%);
-            transform: translateX(4px);
-        }
-
-        .qa-item h3 {
-            color: #fff;
-            font-size: 15px;
-            margin-bottom: 8px;
-            font-weight: 600;
-        }
-
-        .qa-item p {
-            color: #cbd5e1;
-            font-size: 13px;
-            margin-bottom: 10px;
-            line-height: 1.4;
-        }
-
-        .qa-meta {
-            font-size: 11px;
-            color: #94a3b8;
-            margin-bottom: 10px;
-        }
-
-        .qa-keywords {
-            font-size: 11px;
-            color: #64748b;
-            margin-bottom: 10px;
-            font-style: italic;
-        }
-
-        .delete-btn {
-            padding: 6px 12px;
-            background: #dc2626;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
-
-        .delete-btn:hover {
-            background: #b91c1c;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.6);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-
-        .modal.active {
-            display: flex;
-        }
-
-        .modal-content {
-            background: #1e293b;
-            padding: 24px;
-            border-radius: 12px;
-            max-width: 500px;
-            width: 100%;
-            max-height: 80vh;
-            overflow-y: auto;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-        }
-
-        .modal-header {
-            font-size: 18px;
-            font-weight: bold;
-            color: #fff;
-            margin-bottom: 16px;
-        }
-
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            margin-bottom: 16px;
-        }
-
-        .form-group label {
-            color: #cbd5e1;
-            font-size: 14px;
-            font-weight: 600;
-        }
-
-        .form-group input,
-        .form-group textarea {
-            padding: 10px 12px;
-            background: #334155;
-            border: 1px solid #475569;
-            border-radius: 6px;
-            color: #fff;
-            font-family: inherit;
-            font-size: 14px;
-            transition: all 0.3s;
-        }
-
-        .form-group input:focus,
-        .form-group textarea:focus {
-            outline: none;
-            border-color: #3b82f6;
-            background: #3f4655;
-        }
-
-        .form-group textarea {
-            resize: vertical;
-            min-height: 100px;
-        }
-
-        .form-hint {
-            font-size: 12px;
-            color: #94a3b8;
-            margin-top: 4px;
-        }
-
-        .modal-buttons {
-            display: flex;
-            gap: 12px;
-            margin-top: 20px;
-        }
-
-        .modal-buttons button {
-            flex: 1;
-            padding: 12px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 14px;
-            transition: all 0.3s;
-        }
-
-        .save-btn {
-            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-            color: white;
-        }
-
-        .save-btn:hover {
-            transform: translateY(-2px);
-        }
-
-        .cancel-btn {
-            background: #475569;
-            color: white;
-        }
-
-        .cancel-btn:hover {
-            background: #64748b;
-        }
-
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: #1e293b;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: #475569;
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: #64748b;
-        }
-    </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>💬 Smart Knowledge Base Chatbot</h1>
-            <div class="sync-status">
-                <div class="sync-indicator"></div>
-                <span>Ready</span>
-            </div>
-        </div>
 
-        <div class="tabs">
-            <button class="tab-button active">💬 Chat</button>
-            <button class="tab-button">📚 Knowledge Base</button>
-        </div>
+<div class="container">
 
-        <div class="content">
-            <div id="chat" class="tab-content active">
-                <div class="messages" id="messages"></div>
-                <div class="input-area">
-                    <input type="text" id="chatInput" placeholder="Ask me anything...">
-                    <button>Send</button>
-                </div>
-            </div>
+<div class="header">
+Smart Knowledge Base Chatbot
+</div>
 
-            <div id="kb" class="tab-content">
-                <div class="search-area">
-                    <input type="text" id="searchInput" placeholder="Search...">
-                    <button>Search</button>
-                </div>
-                <button class="add-btn">+ Add Q&A</button>
-                <div class="qa-list" id="qaList"></div>
-            </div>
-        </div>
-    </div>
+<div class="tabs">
+<button class="tab-button active">Chat</button>
+<button class="tab-button">Knowledge Base</button>
+</div>
 
-    <div class="modal" id="modal">
-        <div class="modal-content">
-            <div class="modal-header">Add New Q&A</div>
-            <div class="form-group">
-                <label>Question</label>
-                <input type="text" id="formQuestion" placeholder="e.g., What are your hours?">
-            </div>
-            <div class="form-group">
-                <label>Answer</label>
-                <textarea id="formAnswer" placeholder="e.g., We're open 9-6..."></textarea>
-            </div>
-            <div class="form-group">
-                <label>Synonyms (Optional)</label>
-                <input type="text" id="formSynonyms" placeholder="e.g., business hours, opening hours, operating hours">
-                <div class="form-hint">📝 Separate synonyms with commas (,) for better search</div>
-            </div>
-            <div class="form-group">
-                <label>Category</label>
-                <input type="text" id="formCategory" placeholder="e.g., General">
-            </div>
-            <div class="modal-buttons">
-                <button class="save-btn">Save</button>
-                <button class="cancel-btn">Cancel</button>
-            </div>
-        </div>
-    </div>
+<div id="chat" class="tab-content active">
 
+<div id="messages" class="messages"></div>
+
+<div class="input-area">
+<input id="chatInput" placeholder="Ask something...">
+<button class="send-btn" id="sendBtn">Send</button>
+</div>
+
+</div>
+
+<div id="kb" class="tab-content">
+
+<input id="searchInput" placeholder="Search knowledge...">
+
+<button class="add-btn" id="addBtn">Add Q&A</button>
+<button class="add-btn" id="exportKB">Export Knowledge</button>
+<button class="add-btn" id="importKB">Import Knowledge</button>
+
+<input type="file" id="importFile" hidden>
+
+<div id="qaList"></div>
+
+</div>
+
+</div>
+
+
+<div class="modal" id="modal">
+
+<div class="modal-content">
+
+<h3 id="modalTitle">Add Q&A</h3>
+
+<input id="formQuestion" placeholder="Question">
+
+<textarea id="formAnswer" placeholder="Answer"></textarea>
+
+<input id="formSynonyms" placeholder="Synonyms (comma separated)">
+
+<input id="formCategory" placeholder="Category">
+
+<br><br>
+
+<button id="saveBtn" class="add-btn">Save</button>
+<button id="cancelBtn">Cancel</button>
+
+</div>
+
+</div>
 
 <script>
 
-/* ===============================
-   STORAGE
-================================ */
+/* STORAGE */
 
-let knowledgeBase = JSON.parse(localStorage.getItem("kb")) || [];
-let editingIndex = null;
+let knowledgeBase = JSON.parse(localStorage.getItem("kb")) || []
+let editingIndex = null
 
-/* ===============================
-   DOM
-================================ */
+/* DOM */
 
-const messages = document.getElementById("messages");
-const chatInput = document.getElementById("chatInput");
-const sendBtn = document.querySelector(".input-area button");
+const messages=document.getElementById("messages")
+const chatInput=document.getElementById("chatInput")
+const sendBtn=document.getElementById("sendBtn")
 
-const qaList = document.getElementById("qaList");
-const addBtn = document.querySelector(".add-btn");
+const qaList=document.getElementById("qaList")
 
-const modal = document.getElementById("modal");
-const modalTitle = document.getElementById("modalTitle");
+const addBtn=document.getElementById("addBtn")
 
-const saveBtn = document.querySelector(".save-btn");
-const cancelBtn = document.querySelector(".cancel-btn");
+const modal=document.getElementById("modal")
+const modalTitle=document.getElementById("modalTitle")
 
-const formQuestion = document.getElementById("formQuestion");
-const formAnswer = document.getElementById("formAnswer");
-const formSynonyms = document.getElementById("formSynonyms");
-const formCategory = document.getElementById("formCategory");
+const formQuestion=document.getElementById("formQuestion")
+const formAnswer=document.getElementById("formAnswer")
+const formSynonyms=document.getElementById("formSynonyms")
+const formCategory=document.getElementById("formCategory")
 
-const searchInput = document.getElementById("searchInput");
-const searchBtn = document.querySelector(".search-area button");
+const saveBtn=document.getElementById("saveBtn")
+const cancelBtn=document.getElementById("cancelBtn")
 
-/* ===============================
-   CHAT
-================================ */
+const searchInput=document.getElementById("searchInput")
 
-function addMessage(text, type) {
+/* CHAT */
 
-    const msg = document.createElement("div");
-    msg.className = "message " + type;
-    msg.innerText = text;
+function addMessage(text,type){
 
-    messages.appendChild(msg);
+const msg=document.createElement("div")
+msg.className="message "+type
+msg.innerText=text
 
-    messages.scrollTop = messages.scrollHeight;
+messages.appendChild(msg)
+
+messages.scrollTop=messages.scrollHeight
 }
 
-function scoreMatch(text, keywords) {
+function similarity(a,b){
 
-    let score = 0;
+a=a.toLowerCase()
+b=b.toLowerCase()
 
-    keywords.forEach(k => {
-        if (text.includes(k)) score += 1;
-    });
+let score=0
 
-    return score;
+a.split(" ").forEach(w=>{
+if(b.includes(w))score++
+})
+
+return score
 }
 
-function findAnswer(question) {
+function findAnswer(question){
 
-    const q = question.toLowerCase();
+let bestScore=0
+let bestAnswer=null
 
-    let bestScore = 0;
-    let bestAnswer = null;
+knowledgeBase.forEach(item=>{
 
-    knowledgeBase.forEach(item => {
+let score=similarity(question,item.question)
 
-        const keywords = [
-            item.question.toLowerCase(),
-            ...(item.synonyms ? item.synonyms.toLowerCase().split(",") : [])
-        ];
+if(item.synonyms){
 
-        const score = scoreMatch(q, keywords);
-
-        if (score > bestScore) {
-            bestScore = score;
-            bestAnswer = item.answer;
-        }
-
-    });
-
-    return bestAnswer || "I couldn't find that in the knowledge base yet.";
-}
-
-function sendMessage() {
-
-    const text = chatInput.value.trim();
-    if (!text) return;
-
-    addMessage(text, "user");
-
-    const answer = findAnswer(text);
-
-    setTimeout(() => {
-        addMessage(answer, "bot");
-    }, 300);
-
-    chatInput.value = "";
-}
-
-sendBtn.onclick = sendMessage;
-
-chatInput.addEventListener("keypress", e => {
-    if (e.key === "Enter") sendMessage();
-});
-
-/* ===============================
-   KNOWLEDGE BASE
-================================ */
-
-function saveKB() {
-
-    localStorage.setItem("kb", JSON.stringify(knowledgeBase));
-
-    renderKB();
-}
-
-function renderKB(list = knowledgeBase) {
-
-    qaList.innerHTML = "";
-
-    list.forEach((item, index) => {
-
-        const div = document.createElement("div");
-
-        div.className = "qa-item";
-
-        div.innerHTML = `
-        <h3>${item.question}</h3>
-        <p>${item.answer}</p>
-        <div class="qa-meta">Category: ${item.category || "General"}</div>
-        <div class="qa-keywords">Synonyms: ${item.synonyms || "-"}</div>
-
-        <button class="edit-btn">Edit</button>
-        <button class="delete-btn">Delete</button>
-        `;
-
-        div.querySelector(".delete-btn").onclick = () => {
-
-            if (confirm("Delete this entry?")) {
-
-                knowledgeBase.splice(index,1);
-
-                saveKB();
-            }
-
-        };
-
-        div.querySelector(".edit-btn").onclick = () => {
-
-            editingIndex = index;
-
-            modalTitle.innerText = "Edit Q&A";
-
-            formQuestion.value = item.question;
-            formAnswer.value = item.answer;
-            formSynonyms.value = item.synonyms || "";
-            formCategory.value = item.category || "";
-
-            modal.classList.add("active");
-        };
-
-        qaList.appendChild(div);
-
-    });
+item.synonyms.split(",").forEach(s=>{
+score+=similarity(question,s)
+})
 
 }
 
-/* ===============================
-   ADD / UPDATE
-================================ */
+if(score>bestScore){
 
-addBtn.onclick = () => {
+bestScore=score
+bestAnswer=item.answer
 
-    editingIndex = null;
+}
 
-    modalTitle.innerText = "Add New Q&A";
+})
 
-    formQuestion.value = "";
-    formAnswer.value = "";
-    formSynonyms.value = "";
-    formCategory.value = "";
+return bestAnswer || "I don't know that yet."
+}
 
-    modal.classList.add("active");
-};
+function sendMessage(){
 
-cancelBtn.onclick = () => {
-    modal.classList.remove("active");
-};
+const text=chatInput.value.trim()
 
-saveBtn.onclick = () => {
+if(!text)return
 
-    const question = formQuestion.value.trim();
-    const answer = formAnswer.value.trim();
+addMessage(text,"user")
 
-    if (!question || !answer) {
+setTimeout(()=>{
+addMessage(findAnswer(text),"bot")
+},300)
 
-        alert("Question and answer required");
+chatInput.value=""
+}
 
-        return;
-    }
+sendBtn.onclick=sendMessage
 
-    const item = {
-        question,
-        answer,
-        synonyms: formSynonyms.value,
-        category: formCategory.value
-    };
+chatInput.addEventListener("keypress",e=>{
+if(e.key==="Enter")sendMessage()
+})
 
-    if (editingIndex !== null) {
+/* KNOWLEDGE BASE */
 
-        knowledgeBase[editingIndex] = item;
+function saveKB(){
 
-    } else {
+localStorage.setItem("kb",JSON.stringify(knowledgeBase))
+renderKB()
+}
 
-        knowledgeBase.push(item);
+function renderKB(list=knowledgeBase){
 
-    }
+qaList.innerHTML=""
 
-    modal.classList.remove("active");
+list.forEach((item,index)=>{
 
-    saveKB();
-};
+const div=document.createElement("div")
+div.className="qa-item"
 
-/* ===============================
-   SEARCH
-================================ */
+div.innerHTML=`
+<h3>${item.question}</h3>
+<p>${item.answer}</p>
+<small>${item.category||"General"}</small>
+<br><br>
+<button class="edit-btn">Edit</button>
+<button class="delete-btn">Delete</button>
+`
 
-searchBtn.onclick = () => {
+div.querySelector(".edit-btn").onclick=()=>{
 
-    const q = searchInput.value.toLowerCase();
+editingIndex=index
 
-    const results = knowledgeBase.filter(item =>
+modalTitle.innerText="Edit Q&A"
 
-        item.question.toLowerCase().includes(q) ||
-        item.answer.toLowerCase().includes(q) ||
-        (item.synonyms && item.synonyms.toLowerCase().includes(q))
+formQuestion.value=item.question
+formAnswer.value=item.answer
+formSynonyms.value=item.synonyms||""
+formCategory.value=item.category||""
 
-    );
+modal.classList.add("active")
 
-    renderKB(results);
-};
+}
 
-/* ===============================
-   TABS
-================================ */
+div.querySelector(".delete-btn").onclick=()=>{
 
-const tabs = document.querySelectorAll(".tab-button");
-const contents = document.querySelectorAll(".tab-content");
+if(confirm("Delete entry?")){
 
-tabs.forEach((tab, i) => {
+knowledgeBase.splice(index,1)
+saveKB()
 
-    tab.onclick = () => {
+}
 
-        tabs.forEach(t => t.classList.remove("active"));
-        contents.forEach(c => c.classList.remove("active"));
+}
 
-        tab.classList.add("active");
-        contents[i].classList.add("active");
+qaList.appendChild(div)
 
-    };
+})
 
-});
+}
 
-/* ===============================
-   INIT
-================================ */
+/* ADD / EDIT */
 
-renderKB();
+addBtn.onclick=()=>{
 
-addMessage("Hello! Ask me anything from the knowledge base 😊", "bot");
+editingIndex=null
+
+modalTitle.innerText="Add Q&A"
+
+formQuestion.value=""
+formAnswer.value=""
+formSynonyms.value=""
+formCategory.value=""
+
+modal.classList.add("active")
+
+}
+
+cancelBtn.onclick=()=>modal.classList.remove("active")
+
+saveBtn.onclick=()=>{
+
+const item={
+
+question:formQuestion.value,
+answer:formAnswer.value,
+synonyms:formSynonyms.value,
+category:formCategory.value
+
+}
+
+if(editingIndex!==null){
+
+knowledgeBase[editingIndex]=item
+
+}else{
+
+knowledgeBase.push(item)
+
+}
+
+modal.classList.remove("active")
+
+saveKB()
+
+}
+
+/* SEARCH */
+
+searchInput.oninput=()=>{
+
+const q=searchInput.value.toLowerCase()
+
+const results=knowledgeBase.filter(i=>
+
+i.question.toLowerCase().includes(q) ||
+i.answer.toLowerCase().includes(q) ||
+(i.synonyms && i.synonyms.toLowerCase().includes(q))
+
+)
+
+renderKB(results)
+
+}
+
+/* IMPORT EXPORT */
+
+document.getElementById("exportKB").onclick=function(){
+
+const data=JSON.stringify(knowledgeBase,null,2)
+
+const blob=new Blob([data],{type:"application/json"})
+
+const a=document.createElement("a")
+
+a.href=URL.createObjectURL(blob)
+
+a.download="knowledge-base.json"
+
+a.click()
+
+}
+
+const importFile=document.getElementById("importFile")
+
+document.getElementById("importKB").onclick=()=>importFile.click()
+
+importFile.onchange=function(){
+
+const reader=new FileReader()
+
+reader.onload=function(){
+
+knowledgeBase=JSON.parse(reader.result)
+
+saveKB()
+
+alert("Knowledge Imported")
+
+}
+
+reader.readAsText(this.files[0])
+
+}
+
+/* TABS */
+
+const tabs=document.querySelectorAll(".tab-button")
+const contents=document.querySelectorAll(".tab-content")
+
+tabs.forEach((tab,i)=>{
+
+tab.onclick=()=>{
+
+tabs.forEach(t=>t.classList.remove("active"))
+contents.forEach(c=>c.classList.remove("active"))
+
+tab.classList.add("active")
+contents[i].classList.add("active")
+
+}
+
+})
+
+/* INIT */
+
+renderKB()
+
+addMessage("Hello! Ask me anything from the knowledge base.", "bot")
 
 </script>
 
-    
 </body>
 </html>
