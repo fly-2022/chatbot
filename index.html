@@ -142,21 +142,26 @@ function similarity(a,b){
     return score;
 }
 
-function findAnswer(question){
-    const q = question.toLowerCase();
-    let bestScore = 0;
-    let bestAnswer = null;
-    knowledgeBase.forEach(item => {
-        let score = similarity(q,item.question);
-        if(item.synonyms){
-            item.synonyms.split(",").forEach(s => score += similarity(q,s));
+function findAnswer(question) {
+    const q = question.toLowerCase().trim();
+
+    for (let item of knowledgeBase) {
+        // exact match with question
+        if (item.question.toLowerCase() === q) return item.answer;
+
+        // check synonyms
+        if (item.synonyms) {
+            const synonyms = item.synonyms.split(",");
+            for (let s of synonyms) {
+                if (q === s.trim().toLowerCase()) {
+                    return item.answer;
+                }
+            }
         }
-        if(score > bestScore){
-            bestScore = score;
-            bestAnswer = item.answer;
-        }
-    });
-    return bestAnswer && bestAnswer.trim() !== "" ? bestAnswer : "Sorry, I don't know the answer yet. Try adding it in the Knowledge Base 📚";
+    }
+
+    // No match found
+    return "Sorry, I don't know the answer yet. Try adding it in the Knowledge Base 📚";
 }
 
 /* ===============================
