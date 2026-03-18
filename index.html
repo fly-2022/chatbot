@@ -141,28 +141,42 @@ function normalize(text){
 /* ===============================
    INTENT-AWARE ANSWER MATCHING
 ================================ */
+
 function findAnswer(question){
-    const q = normalize(question);
+
+    const qWords = normalize(question).split(" ");
+
+    let bestMatch = null;
+    let bestScore = 0;
 
     for(let item of knowledgeBase){
-        const normalizedQuestion = normalize(item.question);
-        const normalizedSynonyms = item.synonyms ? item.synonyms.split(",").map(s=>normalize(s)) : [];
-        const keywords = item.keywords ? item.keywords.split(",").map(s=>normalize(s)) : [];
 
-        // 1️⃣ Exact question match
-        if(q === normalizedQuestion) return item.answer;
+        const allText = [
+            item.question,
+            item.synonyms || "",
+            item.keywords || ""
+        ].join(" ");
 
-        // 2️⃣ Synonym phrase match
-        if(normalizedSynonyms.some(syn => q.includes(syn) || syn.includes(q))) return item.answer;
+        const itemWords = normalize(allText).split(" ");
 
-        // 3️⃣ Keyword match (intent-based)
-        if(keywords.some(k => q.includes(k))) return item.answer;
+        let score = 0;
+
+        qWords.forEach(w=>{
+            if(itemWords.includes(w)) score++;
+        });
+
+        if(score > bestScore){
+            bestScore = score;
+            bestMatch = item;
+        }
     }
 
-    // 4️⃣ No match
+    if(bestMatch && bestScore > 0){
+        return bestMatch.answer;
+    }
+
     return "Sorry, I don't know the answer yet. Try adding it in the Knowledge Base 📚";
 }
-
 
 /* ===============================
    CHAT
