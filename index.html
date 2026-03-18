@@ -1,513 +1,88 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Knowledge Base Chatbot</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+<script>
+    // Switching between tabs (Chat and Knowledge Base)
+    document.querySelectorAll('.tab-button').forEach(button => {
+        button.addEventListener('click', () => {
+            // Remove active class from all buttons
+            document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+            // Add active class to the clicked button
+            button.classList.add('active');
+
+            // Show the corresponding tab content
+            const tabId = button.textContent.trim().toLowerCase();
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.getElementById(tabId).classList.add('active');
+        });
+    });
+
+    // Handle sending a chat message
+    const chatInput = document.getElementById('chatInput');
+    const messagesContainer = document.getElementById('messages');
+    const sendButton = document.querySelector('.input-area button');
+
+    sendButton.addEventListener('click', () => {
+        const userMessage = chatInput.value;
+        if (userMessage) {
+            // Add the user's message to the messages container
+            const userMessageElement = document.createElement('div');
+            userMessageElement.classList.add('message', 'user');
+            userMessageElement.textContent = userMessage;
+            messagesContainer.appendChild(userMessageElement);
+            
+            // Clear the input field
+            chatInput.value = '';
+
+            // Simulate a bot response
+            const botMessageElement = document.createElement('div');
+            botMessageElement.classList.add('message', 'bot');
+            botMessageElement.textContent = "Bot's response to: " + userMessage;
+            messagesContainer.appendChild(botMessageElement);
+            
+            // Scroll to the bottom of the messages container
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
+    });
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
+    // Handle adding new Q&A
+    const addBtn = document.querySelector('.add-btn');
+    const modal = document.getElementById('modal');
+    const cancelBtn = document.querySelector('.cancel-btn');
+    const saveBtn = document.querySelector('.save-btn');
+
+    addBtn.addEventListener('click', () => {
+        modal.classList.add('active');
+    });
+
+    cancelBtn.addEventListener('click', () => {
+        modal.classList.remove('active');
+    });
+
+    saveBtn.addEventListener('click', () => {
+        const question = document.getElementById('formQuestion').value;
+        const answer = document.getElementById('formAnswer').value;
+        const synonyms = document.getElementById('formSynonyms').value;
+        const category = document.getElementById('formCategory').value;
+
+        if (question && answer) {
+            const qaItem = document.createElement('div');
+            qaItem.classList.add('qa-item');
+            qaItem.innerHTML = `
+                <h3>${question}</h3>
+                <p>${answer}</p>
+                <div class="qa-meta">Category: ${category}</div>
+                <div class="qa-keywords">Synonyms: ${synonyms}</div>
+                <button class="delete-btn">Delete</button>
+            `;
+            document.getElementById('qaList').appendChild(qaItem);
+
+            // Clear form inputs
+            document.getElementById('formQuestion').value = '';
+            document.getElementById('formAnswer').value = '';
+            document.getElementById('formSynonyms').value = '';
+            document.getElementById('formCategory').value = '';
+
+            modal.classList.remove('active');
         }
-
-        .container {
-            width: 100%;
-            max-width: 900px;
-            background: #1e293b;
-            border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            height: 85vh;
-            max-height: 850px;
-        }
-
-        .header {
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-            border-bottom: 2px solid #3b82f6;
-            padding: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .header h1 {
-            color: #fff;
-            font-size: 24px;
-            font-weight: 700;
-        }
-
-        .sync-status {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 12px;
-            color: #94a3b8;
-        }
-
-        .sync-indicator {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #22c55e;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
-        .tabs {
-            display: flex;
-            border-bottom: 1px solid #334155;
-            background: #1e293b;
-        }
-
-        .tab-button {
-            flex: 1;
-            padding: 16px;
-            background: none;
-            border: none;
-            color: #64748b;
-            cursor: pointer;
-            font-weight: 500;
-            transition: all 0.3s;
-            border-bottom: 3px solid transparent;
-            font-size: 14px;
-        }
-
-        .tab-button.active {
-            color: #3b82f6;
-            border-bottom-color: #3b82f6;
-            background: rgba(59, 130, 246, 0.05);
-        }
-
-        .tab-button:hover {
-            background: rgba(59, 130, 246, 0.1);
-            color: #cbd5e1;
-        }
-
-        .content {
-            flex: 1;
-            display: flex;
-            overflow: hidden;
-        }
-
-        .tab-content {
-            display: none;
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px;
-            gap: 16px;
-            flex-direction: column;
-        }
-
-        .tab-content.active {
-            display: flex;
-        }
-
-        .messages {
-            flex: 1;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin-bottom: 16px;
-            padding-right: 8px;
-        }
-
-        .message {
-            padding: 12px 16px;
-            border-radius: 12px;
-            max-width: 85%;
-            word-wrap: break-word;
-            animation: slideIn 0.3s ease;
-            line-height: 1.4;
-        }
-
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .message.user {
-            align-self: flex-end;
-            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-            color: white;
-            border-radius: 12px 4px 12px 12px;
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-        }
-
-        .message.bot {
-            align-self: flex-start;
-            background: #334155;
-            color: #e2e8f0;
-            border-radius: 4px 12px 12px 12px;
-            border-left: 3px solid #3b82f6;
-        }
-
-        .input-area {
-            display: flex;
-            gap: 10px;
-            margin-top: 10px;
-        }
-
-        .input-area input {
-            flex: 1;
-            padding: 12px 16px;
-            background: #334155;
-            border: 1px solid #475569;
-            border-radius: 8px;
-            color: #fff;
-            font-size: 14px;
-            transition: all 0.3s;
-        }
-
-        .input-area input:focus {
-            outline: none;
-            border-color: #3b82f6;
-            background: #3f4655;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-        }
-
-        .input-area button {
-            padding: 12px 24px;
-            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s;
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-        }
-
-        .input-area button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
-        }
-
-        .input-area button:active {
-            transform: translateY(0);
-        }
-
-        .search-area {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-
-        .search-area input {
-            flex: 1;
-            padding: 12px 16px;
-            background: #334155;
-            border: 1px solid #475569;
-            border-radius: 8px;
-            color: #fff;
-        }
-
-        .search-area button {
-            padding: 12px 20px;
-            background: #3b82f6;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-        }
-
-        .add-btn {
-            padding: 12px 16px;
-            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            width: 100%;
-            font-weight: 600;
-            margin-bottom: 12px;
-            transition: all 0.3s;
-        }
-
-        .add-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
-        }
-
-        .qa-list {
-            flex: 1;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            padding-right: 8px;
-        }
-
-        .qa-item {
-            background: linear-gradient(135deg, #334155 0%, #3f4655 100%);
-            padding: 16px;
-            border-radius: 10px;
-            border: 1px solid #475569;
-            transition: all 0.3s;
-            border-left: 3px solid #3b82f6;
-        }
-
-        .qa-item:hover {
-            border-color: #64748b;
-            background: linear-gradient(135deg, #3f4655 0%, #475569 100%);
-            transform: translateX(4px);
-        }
-
-        .qa-item h3 {
-            color: #fff;
-            font-size: 15px;
-            margin-bottom: 8px;
-            font-weight: 600;
-        }
-
-        .qa-item p {
-            color: #cbd5e1;
-            font-size: 13px;
-            margin-bottom: 10px;
-            line-height: 1.4;
-        }
-
-        .qa-meta {
-            font-size: 11px;
-            color: #94a3b8;
-            margin-bottom: 10px;
-        }
-
-        .qa-keywords {
-            font-size: 11px;
-            color: #64748b;
-            margin-bottom: 10px;
-            font-style: italic;
-        }
-
-        .delete-btn {
-            padding: 6px 12px;
-            background: #dc2626;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
-
-        .delete-btn:hover {
-            background: #b91c1c;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.6);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-
-        .modal.active {
-            display: flex;
-        }
-
-        .modal-content {
-            background: #1e293b;
-            padding: 24px;
-            border-radius: 12px;
-            max-width: 500px;
-            width: 100%;
-            max-height: 80vh;
-            overflow-y: auto;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-        }
-
-        .modal-header {
-            font-size: 18px;
-            font-weight: bold;
-            color: #fff;
-            margin-bottom: 16px;
-        }
-
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            margin-bottom: 16px;
-        }
-
-        .form-group label {
-            color: #cbd5e1;
-            font-size: 14px;
-            font-weight: 600;
-        }
-
-        .form-group input,
-        .form-group textarea {
-            padding: 10px 12px;
-            background: #334155;
-            border: 1px solid #475569;
-            border-radius: 6px;
-            color: #fff;
-            font-family: inherit;
-            font-size: 14px;
-            transition: all 0.3s;
-        }
-
-        .form-group input:focus,
-        .form-group textarea:focus {
-            outline: none;
-            border-color: #3b82f6;
-            background: #3f4655;
-        }
-
-        .form-group textarea {
-            resize: vertical;
-            min-height: 100px;
-        }
-
-        .form-hint {
-            font-size: 12px;
-            color: #94a3b8;
-            margin-top: 4px;
-        }
-
-        .modal-buttons {
-            display: flex;
-            gap: 12px;
-            margin-top: 20px;
-        }
-
-        .modal-buttons button {
-            flex: 1;
-            padding: 12px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 14px;
-            transition: all 0.3s;
-        }
-
-        .save-btn {
-            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-            color: white;
-        }
-
-        .save-btn:hover {
-            transform: translateY(-2px);
-        }
-
-        .cancel-btn {
-            background: #475569;
-            color: white;
-        }
-
-        .cancel-btn:hover {
-            background: #64748b;
-        }
-
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: #1e293b;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: #475569;
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: #64748b;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>💬 Smart Knowledge Base Chatbot</h1>
-            <div class="sync-status">
-                <div class="sync-indicator"></div>
-                <span>Ready</span>
-            </div>
-        </div>
-
-        <div class="tabs">
-            <button class="tab-button active">💬 Chat</button>
-            <button class="tab-button">📚 Knowledge Base</button>
-        </div>
-
-        <div class="content">
-            <div id="chat" class="tab-content active">
-                <div class="messages" id="messages"></div>
-                <div class="input-area">
-                    <input type="text" id="chatInput" placeholder="Ask me anything...">
-                    <button>Send</button>
-                </div>
-            </div>
-
-            <div id="kb" class="tab-content">
-                <div class="search-area">
-                    <input type="text" id="searchInput" placeholder="Search...">
-                    <button>Search</button>
-                </div>
-                <button class="add-btn">+ Add Q&A</button>
-                <div class="qa-list" id="qaList"></div>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal" id="modal">
-        <div class="modal-content">
-            <div class="modal-header">Add New Q&A</div>
-            <div class="form-group">
-                <label>Question</label>
-                <input type="text" id="formQuestion" placeholder="e.g., What are your hours?">
-            </div>
-            <div class="form-group">
-                <label>Answer</label>
-                <textarea id="formAnswer" placeholder="e.g., We're open 9-6..."></textarea>
-            </div>
-            <div class="form-group">
-                <label>Synonyms (Optional)</label>
-                <input type="text" id="formSynonyms" placeholder="e.g., business hours, opening hours, operating hours">
-                <div class="form-hint">📝 Separate synonyms with commas (,) for better search</div>
-            </div>
-            <div class="form-group">
-                <label>Category</label>
-                <input type="text" id="formCategory" placeholder="e.g., General">
-            </div>
-            <div class="modal-buttons">
-                <button class="save-btn">Save</button>
-                <button class="cancel-btn">Cancel</button>
-            </div>
-        </div>
-    </div>
-
-    
-</body>
-</html>
+    });
+</script>
