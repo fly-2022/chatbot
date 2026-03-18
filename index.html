@@ -116,6 +116,7 @@ const formQuestion = document.getElementById("formQuestion");
 const formAnswer = document.getElementById("formAnswer");
 const formSynonyms = document.getElementById("formSynonyms");
 const formCategory = document.getElementById("formCategory");
+const formKeywords = document.getElementById("formKeywords"); // optional keywords field
 
 const searchInput = document.getElementById("searchInput");
 const searchBtn = document.querySelector(".search-area button");
@@ -126,34 +127,39 @@ const contents = document.querySelectorAll(".tab-content");
 /* ===============================
    UTILITIES
 ================================ */
-function addMessage(text, type){
-    const msg = document.createElement("div");
-    msg.className = "message " + type;
-    msg.innerText = text;
-    messages.appendChild(msg);
-    messages.scrollTop = messages.scrollHeight;
+const stopwords = ["is","of","the","a","an","at","on","in","to","for","with","and","or"];
+
+function normalize(text){
+    return text
+        .toLowerCase()
+        .replace(/[^\w\s]/g,"")
+        .split(" ")
+        .filter(word => !stopwords.includes(word))
+        .join(" ");
 }
 
 /* ===============================
    INTENT-AWARE ANSWER MATCHING
 ================================ */
-function findAnswer(question) {
-    const q = question.toLowerCase().trim();
+function findAnswer(question){
+    const q = normalize(question);
 
-    for (let item of knowledgeBase) {
-        // 1️⃣ Exact match with question
-        if (item.question.toLowerCase() === q) return item.answer;
+    for(let item of knowledgeBase){
+        const normalizedQuestion = normalize(item.question);
+        const normalizedSynonyms = item.synonyms ? item.synonyms.split(",").map(s=>normalize(s)) : [];
+        const keywords = item.keywords ? item.keywords.split(",").map(s=>normalize(s)) : [];
 
-        // 2️⃣ Match with synonyms (any phrase in synonyms list)
-        if (item.synonyms) {
-            const synonyms = item.synonyms.split(",");
-            for (let s of synonyms) {
-                if (q.includes(s.trim().toLowerCase())) return item.answer;
-            }
-        }
+        // 1️⃣ Exact question match
+        if(q === normalizedQuestion) return item.answer;
+
+        // 2️⃣ Synonym phrase match
+        if(normalizedSynonyms.some(syn => q.includes(syn) || syn.includes(q))) return item.answer;
+
+        // 3️⃣ Keyword match (intent-based)
+        if(keywords.some(k => q.includes(k))) return item.answer;
     }
 
-    // 3️⃣ No match found
+    // 4️⃣ No match
     return "Sorry, I don't know the answer yet. Try adding it in the Knowledge Base 📚";
 }
 
@@ -169,8 +175,8 @@ function sendMessage(){
     chatInput.value="";
 }
 
-if(sendBtn) sendBtn.onclick = sendMessage;
-if(chatInput) chatInput.addEventListener("keypress", e => { if(e.key==="Enter") sendMessage(); });
+sendBtn?.addEventListener("click", sendMessage);
+chatInput?.addEventListener("keypress", e => { if(e.key==="Enter") sendMessage(); });
 
 /* ===============================
    RENDER KB
@@ -186,11 +192,11 @@ function renderKB(list = knowledgeBase){
             <p>${item.answer}</p>
             <div class="qa-meta">Category: ${item.category || "General"}</div>
             <div class="qa-keywords">Synonyms: ${item.synonyms || "-"}</div>
+            <div class="qa-keywords">Keywords: ${item.keywords || "-"}</div>
             <button class="edit-btn">Edit</button>
             <button class="delete-btn">Delete</button>
         `;
 
-        // Delete
         div.querySelector(".delete-btn")?.addEventListener("click",()=> {
             if(confirm("Delete this entry?")){
                 knowledgeBase.splice(index,1);
@@ -198,7 +204,6 @@ function renderKB(list = knowledgeBase){
             }
         });
 
-        // Edit
         div.querySelector(".edit-btn")?.addEventListener("click",()=>{
             editingIndex = index;
             modal.classList.add("active");
@@ -206,6 +211,7 @@ function renderKB(list = knowledgeBase){
             formAnswer.value = item.answer;
             formSynonyms.value = item.synonyms || "";
             formCategory.value = item.category || "";
+            formKeywords.value = item.keywords || "";
         });
 
         qaList.appendChild(div);
@@ -213,32 +219,36 @@ function renderKB(list = knowledgeBase){
 }
 
 function saveKB(){
-    localStorage.setItem("kb",JSON.stringify(knowledgeBase));
+    localStorage.setItem("kb", JSON.stringify(knowledgeBase));
     renderKB();
 }
 
 /* ===============================
    ADD / EDIT Q&A
 ================================ */
-addBtn?.addEventListener("click",()=>{
+addBtn?.addEventListener("click", ()=>{
     editingIndex = null;
     modal.classList.add("active");
     formQuestion.value="";
     formAnswer.value="";
     formSynonyms.value="";
     formCategory.value="";
+    formKeywords.value="";
 });
 
-cancelBtn?.addEventListener("click",()=> modal.classList.remove("active"));
+cancelBtn?.addEventListener("click", ()=> modal.classList.remove("active"));
 
-saveBtn?.addEventListener("click",()=>{
+saveBtn?.addEventListener("click", ()=>{
     const question = formQuestion.value.trim();
     const answer = formAnswer.value.trim();
+    const synonyms = formSynonyms.value.trim();
+    const keywords = formKeywords.value ? formKeywords.value.trim() : "";
     if(!question || !answer) return alert("Question and Answer required");
-    const item = {question,answer,synonyms:formSynonyms.value,category:formCategory.value};
+
+    const item = {question, answer, synonyms, category: formCategory.value, keywords};
     if(editingIndex !== null){
         knowledgeBase[editingIndex] = item;
-    }else{
+    } else {
         knowledgeBase.push(item);
     }
     modal.classList.remove("active");
@@ -246,6 +256,7 @@ saveBtn?.addEventListener("click",()=>{
     formAnswer.value="";
     formSynonyms.value="";
     formCategory.value="";
+    formKeywords.value="";
     saveKB();
 });
 
@@ -262,14 +273,14 @@ function doSearch(){
     renderKB(results);
 }
 
-if(searchBtn) searchBtn.addEventListener("click", doSearch);
-if(searchInput) searchInput.addEventListener("input", doSearch);
+searchBtn?.addEventListener("click", doSearch);
+searchInput?.addEventListener("input", doSearch);
 
 /* ===============================
    TABS
 ================================ */
 tabs.forEach((tab,i)=>{
-    tab.addEventListener("click",()=>{
+    tab.addEventListener("click", ()=>{
         tabs.forEach(t=>t.classList.remove("active"));
         contents.forEach(c=>c.classList.remove("active"));
         tab.classList.add("active");
