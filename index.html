@@ -92,15 +92,19 @@ padding:20px;color:white;font-size:22px;font-weight:700;}
 </div>
 
 <script>
+
 /* ===============================
    KNOWLEDGE BASE STORAGE
 ================================ */
+
 let knowledgeBase = JSON.parse(localStorage.getItem("kb")) || [];
 let editingIndex = null;
+
 
 /* ===============================
    DOM ELEMENTS
 ================================ */
+
 const messages = document.getElementById("messages");
 const chatInput = document.getElementById("chatInput");
 const sendBtn = document.querySelector(".input-area button");
@@ -116,7 +120,6 @@ const formQuestion = document.getElementById("formQuestion");
 const formAnswer = document.getElementById("formAnswer");
 const formSynonyms = document.getElementById("formSynonyms");
 const formCategory = document.getElementById("formCategory");
-const formKeywords = document.getElementById("formKeywords"); // optional keywords field
 
 const searchInput = document.getElementById("searchInput");
 const searchBtn = document.querySelector(".search-area button");
@@ -124,10 +127,15 @@ const searchBtn = document.querySelector(".search-area button");
 const tabs = document.querySelectorAll(".tab-button");
 const contents = document.querySelectorAll(".tab-content");
 
+
 /* ===============================
-   UTILITIES
+   TEXT NORMALIZATION
 ================================ */
-const stopwords = ["is","of","the","a","an","at","on","in","to","for","with","and","or"];
+
+const stopwords = [
+"is","of","the","a","an","at","on","in","to","for","with","and","or",
+"what","where","when","how","does","do","did"
+];
 
 function normalize(text){
     return text
@@ -138,9 +146,22 @@ function normalize(text){
         .join(" ");
 }
 
+
 /* ===============================
-   INTENT-AWARE ANSWER MATCHING
+   CHAT FUNCTIONS
 ================================ */
+
+function addMessage(text, type){
+
+    const msg = document.createElement("div");
+    msg.className = "message " + type;
+    msg.innerText = text;
+
+    messages.appendChild(msg);
+    messages.scrollTop = messages.scrollHeight;
+
+}
+
 
 function findAnswer(question){
 
@@ -149,49 +170,43 @@ function findAnswer(question){
     let bestMatch = null;
     let bestScore = 0;
 
-    for(let item of knowledgeBase){
+    knowledgeBase.forEach(item => {
 
-        const allText = [
+        const searchableText = [
             item.question,
-            item.synonyms || "",
-            item.keywords || ""
+            item.synonyms || ""
         ].join(" ");
 
-        const itemWords = normalize(allText).split(" ");
+        const itemWords = normalize(searchableText).split(" ");
 
         let score = 0;
 
-        qWords.forEach(w=>{
-            if(itemWords.includes(w)) score++;
+        qWords.forEach(word=>{
+            if(itemWords.includes(word)){
+                score++;
+            }
         });
 
         if(score > bestScore){
             bestScore = score;
             bestMatch = item;
         }
-    }
 
-    if(bestMatch && bestScore > 0){
+    });
+
+    if(bestMatch && bestScore >= 2){
         return bestMatch.answer;
     }
 
     return "Sorry, I don't know the answer yet. Try adding it in the Knowledge Base 📚";
+
 }
 
-/* ===============================
-   CHAT
-================================ */
-
-function addMessage(text, type){
-    const msg = document.createElement("div");
-    msg.className = "message " + type;
-    msg.innerText = text;
-    messages.appendChild(msg);
-    messages.scrollTop = messages.scrollHeight;
-}
 
 function sendMessage(){
+
     const text = chatInput.value.trim();
+
     if(!text) return;
 
     addMessage(text,"user");
@@ -203,47 +218,58 @@ function sendMessage(){
     },300);
 
     chatInput.value="";
+
 }
 
-/* Attach button click */
+
+/* SEND BUTTON */
+
 if(sendBtn){
-    sendBtn.addEventListener("click", function(e){
+sendBtn.addEventListener("click", function(e){
+    e.preventDefault();
+    sendMessage();
+});
+}
+
+
+/* ENTER KEY */
+
+if(chatInput){
+chatInput.addEventListener("keydown", function(e){
+    if(e.key === "Enter"){
         e.preventDefault();
         sendMessage();
-    });
-}
-
-/* Allow Enter key */
-if(chatInput){
-    chatInput.addEventListener("keydown", function(e){
-        if(e.key === "Enter"){
-            e.preventDefault();
-            sendMessage();
-        }
-    });
+    }
+});
 }
 
 
 /* ===============================
-   RENDER KB
+   RENDER KNOWLEDGE BASE
 ================================ */
+
 function renderKB(list = knowledgeBase){
+
     if(!qaList) return;
+
     qaList.innerHTML = "";
+
     list.forEach((item,index)=>{
+
         const div = document.createElement("div");
+
         div.className = "qa-item";
+
         div.innerHTML = `
-            <h3>${item.question}</h3>
-            <p>${item.answer}</p>
-            <div class="qa-meta">Category: ${item.category || "General"}</div>
-            <div class="qa-keywords">Synonyms: ${item.synonyms || "-"}</div>
-            <div class="qa-keywords">Keywords: ${item.keywords || "-"}</div>
-            <button class="edit-btn">Edit</button>
-            <button class="delete-btn">Delete</button>
+        <h3>${item.question}</h3>
+        <p>${item.answer}</p>
+        <div class="qa-meta">Category: ${item.category || "General"}</div>
+        <div class="qa-keywords">Synonyms: ${item.synonyms || "-"}</div>
+        <button class="edit-btn">Edit</button>
+        <button class="delete-btn">Delete</button>
         `;
 
-        div.querySelector(".delete-btn")?.addEventListener("click",()=> {
+        div.querySelector(".delete-btn")?.addEventListener("click",()=>{
             if(confirm("Delete this entry?")){
                 knowledgeBase.splice(index,1);
                 saveKB();
@@ -251,93 +277,153 @@ function renderKB(list = knowledgeBase){
         });
 
         div.querySelector(".edit-btn")?.addEventListener("click",()=>{
+
             editingIndex = index;
+
             modal.classList.add("active");
+
             formQuestion.value = item.question;
             formAnswer.value = item.answer;
             formSynonyms.value = item.synonyms || "";
             formCategory.value = item.category || "";
-            formKeywords.value = item.keywords || "";
+
         });
 
         qaList.appendChild(div);
+
     });
+
 }
 
-function saveKB(){
-    localStorage.setItem("kb", JSON.stringify(knowledgeBase));
-    renderKB();
-}
 
 /* ===============================
-   ADD / EDIT Q&A
+   SAVE KNOWLEDGE BASE
 ================================ */
-addBtn?.addEventListener("click", ()=>{
+
+function saveKB(){
+
+    localStorage.setItem("kb", JSON.stringify(knowledgeBase));
+
+    renderKB();
+
+}
+
+
+/* ===============================
+   ADD FAQ
+================================ */
+
+addBtn?.addEventListener("click",()=>{
+
     editingIndex = null;
+
     modal.classList.add("active");
+
     formQuestion.value="";
     formAnswer.value="";
     formSynonyms.value="";
     formCategory.value="";
-    formKeywords.value="";
+
 });
 
-cancelBtn?.addEventListener("click", ()=> modal.classList.remove("active"));
 
-saveBtn?.addEventListener("click", ()=>{
+cancelBtn?.addEventListener("click",()=>{
+
+    modal.classList.remove("active");
+
+});
+
+
+saveBtn?.addEventListener("click",function(e){
+
+    e.preventDefault();
+
     const question = formQuestion.value.trim();
     const answer = formAnswer.value.trim();
     const synonyms = formSynonyms.value.trim();
-    const keywords = formKeywords.value ? formKeywords.value.trim() : "";
-    if(!question || !answer) return alert("Question and Answer required");
+    const category = formCategory.value.trim();
 
-    const item = {question, answer, synonyms, category: formCategory.value, keywords};
+    if(!question || !answer){
+        alert("Question and Answer required");
+        return;
+    }
+
+    const item = {
+        question: question,
+        answer: answer,
+        synonyms: synonyms,
+        category: category
+    };
+
     if(editingIndex !== null){
         knowledgeBase[editingIndex] = item;
-    } else {
+    }
+    else{
         knowledgeBase.push(item);
     }
+
     modal.classList.remove("active");
+
     formQuestion.value="";
     formAnswer.value="";
     formSynonyms.value="";
     formCategory.value="";
-    formKeywords.value="";
+
     saveKB();
+
 });
+
 
 /* ===============================
    SEARCH
 ================================ */
+
 function doSearch(){
+
     const q = searchInput?.value.toLowerCase() || "";
-    const results = knowledgeBase.filter(item=>
+
+    const results = knowledgeBase.filter(item =>
+
         item.question.toLowerCase().includes(q) ||
         item.answer.toLowerCase().includes(q) ||
         (item.synonyms && item.synonyms.toLowerCase().includes(q))
+
     );
+
     renderKB(results);
+
 }
 
 searchBtn?.addEventListener("click", doSearch);
 searchInput?.addEventListener("input", doSearch);
 
+
 /* ===============================
    TABS
 ================================ */
+
 tabs.forEach((tab,i)=>{
-    tab.addEventListener("click", ()=>{
+
+    tab.addEventListener("click",()=>{
+
         tabs.forEach(t=>t.classList.remove("active"));
         contents.forEach(c=>c.classList.remove("active"));
+
         tab.classList.add("active");
         contents[i].classList.add("active");
+
     });
+
 });
+
 
 /* ===============================
    INIT
 ================================ */
+
 renderKB();
+
 addMessage("Hello! Ask me anything from the knowledge base 😊","bot");
+
 </script>
 </html>
