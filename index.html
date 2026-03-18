@@ -90,19 +90,43 @@ padding:20px;color:white;font-size:22px;font-weight:700;}
 </div>
 </div>
 </div>
-<script>
-// Knowledge Base
-let knowledgeBase = JSON.parse(localStorage.getItem("kb")) || [];
-let editingIndex = null;
 
-// DOM
+
+    <script>
+/* ===============================
+   KNOWLEDGE BASE STORAGE
+================================ */
+
+let knowledgeBase = JSON.parse(localStorage.getItem("kb")) || [];
+
+/* ===============================
+   DOM ELEMENTS
+================================ */
+
 const messages = document.getElementById("messages");
 const chatInput = document.getElementById("chatInput");
-const sendBtn = document.getElementById("sendBtn");
-const qaList = document.getElementById("qaList");
+const sendBtn = document.querySelector(".input-area button");
 
-// Add message
-function addMessage(text, type){
+const qaList = document.getElementById("qaList");
+const addBtn = document.querySelector(".add-btn");
+
+const modal = document.getElementById("modal");
+const saveBtn = document.querySelector(".save-btn");
+const cancelBtn = document.querySelector(".cancel-btn");
+
+const formQuestion = document.getElementById("formQuestion");
+const formAnswer = document.getElementById("formAnswer");
+const formSynonyms = document.getElementById("formSynonyms");
+const formCategory = document.getElementById("formCategory");
+
+const searchInput = document.getElementById("searchInput");
+const searchBtn = document.querySelector(".search-area button");
+
+/* ===============================
+   CHAT FUNCTIONS
+================================ */
+
+function addMessage(text, type) {
     const msg = document.createElement("div");
     msg.className = "message " + type;
     msg.innerText = text;
@@ -110,170 +134,163 @@ function addMessage(text, type){
     messages.scrollTop = messages.scrollHeight;
 }
 
-// Similarity
-function similarity(a,b){
-    a = a.toLowerCase();
-    b = b.toLowerCase();
-    let score = 0;
-    a.split(" ").forEach(w => { if(b.includes(w)) score++; });
-    return score;
-}
+function findAnswer(question) {
 
-// Smart answer matching
-function findAnswer(query){
-    query = query.toLowerCase();
-    let bestScore = 0;
-    let bestItem = null;
-    knowledgeBase.forEach(item => {
-        const terms = [item.question];
-        if(item.synonyms) terms.push(...item.synonyms.split(","));
-        let score = 0;
-        for(const term of terms){
-            const words = term.toLowerCase().split(" ");
-            words.forEach(w => { if(query.includes(w)) score++; });
+    const q = question.toLowerCase();
+
+    for (let item of knowledgeBase) {
+
+        if (item.question.toLowerCase().includes(q)) {
+            return item.answer;
         }
-        if(score > bestScore){
-            bestScore = score;
-            bestItem = item;
+
+        if (item.synonyms) {
+            const synonyms = item.synonyms.split(",");
+            for (let s of synonyms) {
+                if (q.includes(s.trim().toLowerCase())) {
+                    return item.answer;
+                }
+            }
         }
-    });
-    if(!bestItem || bestScore===0){
-        return "I don't have that information yet. Please add it to the knowledge base.";
-    }else{
-        return bestItem.answer;
     }
+
+    return "Sorry, I don't know the answer yet. Try adding it in the Knowledge Base 📚";
 }
 
-// Send button
-sendBtn.onclick = ()=>{
+function sendMessage() {
+
     const text = chatInput.value.trim();
-    if(!text) return;
-    addMessage(text,"user");
-    setTimeout(()=>{ addMessage(findAnswer(text),"bot"); },300);
-    chatInput.value = "";
-};
+    if (!text) return;
 
-// Save KB
-function saveKB(){
-    localStorage.setItem("kb",JSON.stringify(knowledgeBase));
-    renderKB();
+    addMessage(text, "user");
+
+    const answer = findAnswer(text);
+
+    setTimeout(() => {
+        addMessage(answer, "bot");
+    }, 300);
+
+    chatInput.value = "";
 }
 
-// Render KB
-function renderKB(list=knowledgeBase){
+sendBtn.onclick = sendMessage;
+chatInput.addEventListener("keypress", e => {
+    if (e.key === "Enter") sendMessage();
+});
+
+/* ===============================
+   KNOWLEDGE BASE UI
+================================ */
+
+function renderKB(list = knowledgeBase) {
+
     qaList.innerHTML = "";
-    list.forEach((item,index)=>{
+
+    list.forEach((item, index) => {
+
         const div = document.createElement("div");
-        div.className="qa-item";
+        div.className = "qa-item";
+
         div.innerHTML = `
         <h3>${item.question}</h3>
         <p>${item.answer}</p>
-        <div class="qa-meta">Category: ${item.category||"General"}</div>
-        <div class="qa-keywords">Synonyms: ${item.synonyms||"-"}</div>
-        <button class="edit-btn">Edit</button>
+        <div class="qa-meta">Category: ${item.category || "General"}</div>
+        <div class="qa-keywords">Synonyms: ${item.synonyms || "-"}</div>
         <button class="delete-btn">Delete</button>
         `;
-        div.querySelector(".edit-btn").onclick = ()=>{
-            editingIndex = index;
-            document.getElementById("modalTitle").innerText="Edit Q&A";
-            document.getElementById("formQuestion").value=item.question;
-            document.getElementById("formAnswer").value=item.answer;
-            document.getElementById("formSynonyms").value=item.synonyms||"";
-            document.getElementById("formCategory").value=item.category||"";
-            document.getElementById("modal").classList.add("active");
+
+        div.querySelector(".delete-btn").onclick = () => {
+            knowledgeBase.splice(index,1);
+            saveKB();
         };
-        div.querySelector(".delete-btn").onclick = ()=>{
-            if(confirm("Delete entry?")){
-                knowledgeBase.splice(index,1);
-                saveKB();
-            }
-        };
+
         qaList.appendChild(div);
     });
 }
 
-// Add new
-document.getElementById("addBtn").onclick=()=>{
-    editingIndex=null;
-    document.getElementById("modalTitle").innerText="Add Q&A";
-    document.getElementById("formQuestion").value="";
-    document.getElementById("formAnswer").value="";
-    document.getElementById("formSynonyms").value="";
-    document.getElementById("formCategory").value="";
-    document.getElementById("modal").classList.add("active");
+function saveKB() {
+    localStorage.setItem("kb", JSON.stringify(knowledgeBase));
+    renderKB();
+}
+
+/* ===============================
+   ADD Q&A
+================================ */
+
+addBtn.onclick = () => {
+    modal.classList.add("active");
 };
 
-// Cancel
-document.getElementById("cancelBtn").onclick = ()=>{
-    document.getElementById("modal").classList.remove("active");
+cancelBtn.onclick = () => {
+    modal.classList.remove("active");
 };
 
-// Save modal
-document.getElementById("saveBtn").onclick = ()=>{
-    const item = {
-        question: document.getElementById("formQuestion").value,
-        answer: document.getElementById("formAnswer").value,
-        synonyms: document.getElementById("formSynonyms").value,
-        category: document.getElementById("formCategory").value
-    };
-    if(editingIndex!==null){
-        knowledgeBase[editingIndex]=item;
-    } else {
-        knowledgeBase.push(item);
-    }
-    document.getElementById("modal").classList.remove("active");
+saveBtn.onclick = () => {
+
+    const question = formQuestion.value.trim();
+    const answer = formAnswer.value.trim();
+
+    if (!question || !answer) return alert("Question and Answer required");
+
+    knowledgeBase.push({
+        question,
+        answer,
+        synonyms: formSynonyms.value,
+        category: formCategory.value
+    });
+
+    formQuestion.value = "";
+    formAnswer.value = "";
+    formSynonyms.value = "";
+    formCategory.value = "";
+
+    modal.classList.remove("active");
+
     saveKB();
 };
 
-// Search KB
-document.getElementById("searchInput").oninput = ()=>{
-    const q = document.getElementById("searchInput").value.toLowerCase();
-    const results = knowledgeBase.filter(i=>
-        i.question.toLowerCase().includes(q)||
-        i.answer.toLowerCase().includes(q)||
-        (i.synonyms && i.synonyms.toLowerCase().includes(q))
+/* ===============================
+   SEARCH
+================================ */
+
+searchBtn.onclick = () => {
+
+    const q = searchInput.value.toLowerCase();
+
+    const results = knowledgeBase.filter(item =>
+        item.question.toLowerCase().includes(q) ||
+        item.answer.toLowerCase().includes(q) ||
+        (item.synonyms && item.synonyms.toLowerCase().includes(q))
     );
+
     renderKB(results);
 };
 
-// Export KB
-document.getElementById("exportKB").onclick = ()=>{
-    const data = JSON.stringify(knowledgeBase,null,2);
-    const blob = new Blob([data],{type:"application/json"});
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download="knowledge-base.json";
-    a.click();
-};
+/* ===============================
+   TABS
+================================ */
 
-// Import KB
-const importFile=document.getElementById("importFile");
-document.getElementById("importKB").onclick=()=>importFile.click();
-importFile.onchange=function(){
-    const reader=new FileReader();
-    reader.onload=function(){
-        knowledgeBase=JSON.parse(reader.result);
-        saveKB();
-        alert("Knowledge imported!");
-    };
-    reader.readAsText(this.files[0]);
-};
+const tabs = document.querySelectorAll(".tab-button");
+const contents = document.querySelectorAll(".tab-content");
 
-// Tabs
-const tabs=document.querySelectorAll(".tab-button");
-const contents=document.querySelectorAll(".tab-content");
-tabs.forEach((tab,i)=>{
-    tab.onclick=()=>{
-        tabs.forEach(t=>t.classList.remove("active"));
-        contents.forEach(c=>c.classList.remove("active"));
+tabs.forEach((tab, i) => {
+    tab.onclick = () => {
+
+        tabs.forEach(t => t.classList.remove("active"));
+        contents.forEach(c => c.classList.remove("active"));
+
         tab.classList.add("active");
         contents[i].classList.add("active");
-    }
+    };
 });
 
-// Initialize
+/* ===============================
+   INIT
+================================ */
+
 renderKB();
-addMessage("Hello! Ask me anything from the knowledge base 😊","bot");
+
+addMessage("Hello! Ask me anything from the knowledge base 😊", "bot");
+
 </script>
-</body>
 </html>
