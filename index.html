@@ -92,12 +92,13 @@ padding:20px;color:white;font-size:22px;font-weight:700;}
 </div>
 
 
-    <script>
+<script>
 /* ===============================
    KNOWLEDGE BASE STORAGE
 ================================ */
 
 let knowledgeBase = JSON.parse(localStorage.getItem("kb")) || [];
+let editingIndex = null; // Track if we're editing an entry
 
 /* ===============================
    DOM ELEMENTS
@@ -134,33 +135,42 @@ function addMessage(text, type) {
     messages.scrollTop = messages.scrollHeight;
 }
 
+// Simple similarity function
+function similarity(a, b) {
+    a = a.toLowerCase();
+    b = b.toLowerCase();
+    let score = 0;
+    a.split(" ").forEach(w => { if(b.includes(w)) score++; });
+    return score;
+}
+
+// Smart answer matching (previous working behavior)
 function findAnswer(question) {
-
     const q = question.toLowerCase();
+    let bestScore = 0;
+    let bestAnswer = null;
 
-    for (let item of knowledgeBase) {
-
-        if (item.question.toLowerCase().includes(q)) {
-            return item.answer;
+    knowledgeBase.forEach(item => {
+        let score = similarity(q, item.question);
+        if(item.synonyms){
+            item.synonyms.split(",").forEach(s => { score += similarity(q, s); });
         }
-
-        if (item.synonyms) {
-            const synonyms = item.synonyms.split(",");
-            for (let s of synonyms) {
-                if (q.includes(s.trim().toLowerCase())) {
-                    return item.answer;
-                }
-            }
+        if(score > bestScore){
+            bestScore = score;
+            bestAnswer = item.answer;
         }
+    });
+
+    if(bestAnswer && bestAnswer.trim() !== ""){
+        return bestAnswer;
+    } else {
+        return "Sorry, I don't know the answer yet. Try adding it in the Knowledge Base 📚";
     }
-
-    return "Sorry, I don't know the answer yet. Try adding it in the Knowledge Base 📚";
 }
 
 function sendMessage() {
-
     const text = chatInput.value.trim();
-    if (!text) return;
+    if(!text) return;
 
     addMessage(text, "user");
 
@@ -174,34 +184,44 @@ function sendMessage() {
 }
 
 sendBtn.onclick = sendMessage;
-chatInput.addEventListener("keypress", e => {
-    if (e.key === "Enter") sendMessage();
-});
+chatInput.addEventListener("keypress", e => { if(e.key === "Enter") sendMessage(); });
 
 /* ===============================
    KNOWLEDGE BASE UI
 ================================ */
 
 function renderKB(list = knowledgeBase) {
-
     qaList.innerHTML = "";
 
     list.forEach((item, index) => {
-
         const div = document.createElement("div");
         div.className = "qa-item";
 
         div.innerHTML = `
-        <h3>${item.question}</h3>
-        <p>${item.answer}</p>
-        <div class="qa-meta">Category: ${item.category || "General"}</div>
-        <div class="qa-keywords">Synonyms: ${item.synonyms || "-"}</div>
-        <button class="delete-btn">Delete</button>
+            <h3>${item.question}</h3>
+            <p>${item.answer}</p>
+            <div class="qa-meta">Category: ${item.category || "General"}</div>
+            <div class="qa-keywords">Synonyms: ${item.synonyms || "-"}</div>
+            <button class="edit-btn">Edit</button>
+            <button class="delete-btn">Delete</button>
         `;
 
+        // Delete entry
         div.querySelector(".delete-btn").onclick = () => {
-            knowledgeBase.splice(index,1);
-            saveKB();
+            if(confirm("Delete this entry?")){
+                knowledgeBase.splice(index,1);
+                saveKB();
+            }
+        };
+
+        // Edit entry
+        div.querySelector(".edit-btn").onclick = () => {
+            editingIndex = index;
+            modal.classList.add("active");
+            formQuestion.value = item.question;
+            formAnswer.value = item.answer;
+            formSynonyms.value = item.synonyms || "";
+            formCategory.value = item.category || "";
         };
 
         qaList.appendChild(div);
@@ -214,11 +234,16 @@ function saveKB() {
 }
 
 /* ===============================
-   ADD Q&A
+   ADD / EDIT Q&A
 ================================ */
 
 addBtn.onclick = () => {
+    editingIndex = null;
     modal.classList.add("active");
+    formQuestion.value = "";
+    formAnswer.value = "";
+    formSynonyms.value = "";
+    formCategory.value = "";
 };
 
 cancelBtn.onclick = () => {
@@ -226,25 +251,29 @@ cancelBtn.onclick = () => {
 };
 
 saveBtn.onclick = () => {
-
     const question = formQuestion.value.trim();
     const answer = formAnswer.value.trim();
 
-    if (!question || !answer) return alert("Question and Answer required");
+    if(!question || !answer) return alert("Question and Answer required");
 
-    knowledgeBase.push({
+    const item = {
         question,
         answer,
         synonyms: formSynonyms.value,
         category: formCategory.value
-    });
+    };
 
+    if(editingIndex !== null){
+        knowledgeBase[editingIndex] = item; // update existing
+    } else {
+        knowledgeBase.push(item); // add new
+    }
+
+    modal.classList.remove("active");
     formQuestion.value = "";
     formAnswer.value = "";
     formSynonyms.value = "";
     formCategory.value = "";
-
-    modal.classList.remove("active");
 
     saveKB();
 };
@@ -254,15 +283,12 @@ saveBtn.onclick = () => {
 ================================ */
 
 searchBtn.onclick = () => {
-
     const q = searchInput.value.toLowerCase();
-
     const results = knowledgeBase.filter(item =>
         item.question.toLowerCase().includes(q) ||
         item.answer.toLowerCase().includes(q) ||
         (item.synonyms && item.synonyms.toLowerCase().includes(q))
     );
-
     renderKB(results);
 };
 
@@ -275,7 +301,6 @@ const contents = document.querySelectorAll(".tab-content");
 
 tabs.forEach((tab, i) => {
     tab.onclick = () => {
-
         tabs.forEach(t => t.classList.remove("active"));
         contents.forEach(c => c.classList.remove("active"));
 
@@ -289,7 +314,6 @@ tabs.forEach((tab, i) => {
 ================================ */
 
 renderKB();
-
 addMessage("Hello! Ask me anything from the knowledge base 😊", "bot");
 
 </script>
