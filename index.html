@@ -399,33 +399,29 @@ return score
 }
 
 function findAnswer(q){
+    let bestScore = 0;
+    let bestAnswer = null;
+    const threshold = 1; // minimum score to consider a valid match
 
-let bestScore=0
-let bestAnswer=null
+    knowledgeBase.forEach(item => {
+        let score = similarity(q, item.question);
+        if(item.synonyms){
+            item.synonyms.split(",").forEach(s => {
+                score += similarity(q, s);
+            });
+        }
 
-knowledgeBase.forEach(item=>{
+        if(score > bestScore){
+            bestScore = score;
+            bestAnswer = item.answer;
+        }
+    });
 
-let score=similarity(q,item.question)
-
-if(item.synonyms){
-
-item.synonyms.split(",").forEach(s=>{
-score+=similarity(q,s)
-})
-
-}
-
-if(score>bestScore){
-
-bestScore=score
-bestAnswer=item.answer
-
-}
-
-})
-
-return bestAnswer||"I couldn't find that in the knowledge base yet."
-
+    if(bestScore >= threshold){
+        return bestAnswer;
+    } else {
+        return "I don't have that information yet. Please add it to the knowledge base.";
+    }
 }
 
 sendBtn.onclick=()=>{
