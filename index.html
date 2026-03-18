@@ -163,20 +163,52 @@ function findAnswer(question){
     return "Sorry, I don't know the answer yet. Try adding it in the Knowledge Base 📚";
 }
 
+
 /* ===============================
    CHAT
 ================================ */
+
+function addMessage(text, type){
+    const msg = document.createElement("div");
+    msg.className = "message " + type;
+    msg.innerText = text;
+    messages.appendChild(msg);
+    messages.scrollTop = messages.scrollHeight;
+}
+
 function sendMessage(){
     const text = chatInput.value.trim();
     if(!text) return;
+
     addMessage(text,"user");
+
     const answer = findAnswer(text);
-    setTimeout(()=> addMessage(answer,"bot"),300);
+
+    setTimeout(()=>{
+        addMessage(answer,"bot");
+    },300);
+
     chatInput.value="";
 }
 
-sendBtn?.addEventListener("click", sendMessage);
-chatInput?.addEventListener("keypress", e => { if(e.key==="Enter") sendMessage(); });
+/* Attach button click */
+if(sendBtn){
+    sendBtn.addEventListener("click", function(e){
+        e.preventDefault();
+        sendMessage();
+    });
+}
+
+/* Allow Enter key */
+if(chatInput){
+    chatInput.addEventListener("keydown", function(e){
+        if(e.key === "Enter"){
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+}
+
 
 /* ===============================
    RENDER KB
